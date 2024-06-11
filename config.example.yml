@@ -1,0 +1,11 @@
+# A collection of power-saved plugs.
+power-save-plugs:
+  # The name of the power-saved plug.
+  tv-setup:
+    # The address of the tapo P110 plug.
+    address: '1.2.3.4'
+    # When the plug consumes less than `power-threshold` watts of power for `max-low-power-time` seconds, the plug will be turned off.
+    power-threshold: 50
+    max-low-power-time: 60
+    # Whether to log the power-off event on discord. When true, the `DISCORD_WEBHOOK_URL` environment variable should be set.
+    discord-log: true

@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  tapo-power-saver:
+    build: '.'
+    environment:
+      TP_LINK_EMAIL: ${TP_LINK_EMAIL}
+      TP_LINK_PASSWORD: ${TP_LINK_PASSWORD}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
+      CONFIG_FILE: /etc/tapo-power-saver/config.yml
+    volumes:
+      - ./config.yml:/etc/tapo-power-saver/config.yml:ro
+    restart: unless-stopped
