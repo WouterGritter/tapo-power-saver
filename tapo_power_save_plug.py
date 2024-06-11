@@ -33,6 +33,8 @@ class TapoPowerSavePlug:
     def __set_status(self, status: bool):
         self.__p110.set_status(status)
 
+        print(f'Status of plug {self.__name} has been set to {status}.')
+
         if status is False and self.__discord_log:
             discord_webhook_url = os.getenv('DISCORD_WEBHOOK_URL')
             if discord_webhook_url is not None:
