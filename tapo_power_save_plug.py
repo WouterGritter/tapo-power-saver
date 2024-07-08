@@ -5,6 +5,8 @@ from typing import Optional, TypedDict, NotRequired
 from PyP100.PyP110 import P110
 from discord_webhook import DiscordWebhook
 
+from device_utils import execute_device_method
+
 
 class TapoPowerSavePlug:
     def __init__(self, name: str, p110: P110, power_threshold: float, max_low_power_time: float, discord_log: bool):
@@ -31,7 +33,7 @@ class TapoPowerSavePlug:
             self.__low_power_since = None
 
     def __set_status(self, status: bool):
-        self.__p110.set_status(status)
+        execute_device_method(self.__p110, lambda d: d.set_status(status))
 
         print(f'Status of plug {self.__name} has been set to {status}.')
 
@@ -44,10 +46,11 @@ class TapoPowerSavePlug:
                 print('The environment variable DISCORD_WEBHOOK_URL should be set in order for discord logs to work.')
 
     def __fetch_status(self) -> bool:
-        return self.__p110.get_status()
+        return execute_device_method(self.__p110, lambda d: d.get_status())
 
     def __fetch_current_power(self) -> float:
-        return self.__p110.getEnergyUsage()['current_power'] / 1000
+        energy_usage = execute_device_method(self.__p110, lambda d: d.getEnergyUsage())
+        return energy_usage['current_power'] / 1000
 
 
 class TapoPowerSavePlugConfig(TypedDict):
