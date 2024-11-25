@@ -2,16 +2,17 @@ import datetime
 import os
 from typing import Optional, TypedDict, NotRequired
 
-from PyP100.PyP110 import P110
 from discord_webhook import DiscordWebhook
 
-from device_utils import execute_device_method
+from p110_power_monitoring_plug import P110PowerMonitoringPlug
+from power_monitoring_plug import PowerMonitoringPlug
 
 
 class TapoPowerSavePlug:
-    def __init__(self, name: str, p110: P110, power_threshold: float, max_low_power_time: float, discord_log: bool):
+
+    def __init__(self, name: str, plug: PowerMonitoringPlug, power_threshold: float, max_low_power_time: float, discord_log: bool):
         self.__name = name
-        self.__p110 = p110
+        self.__plug = plug
         self.__power_threshold = power_threshold
         self.__max_low_power_time = max_low_power_time
         self.__discord_log = discord_log
@@ -19,59 +20,51 @@ class TapoPowerSavePlug:
         self.__low_power_since: Optional[datetime.datetime] = None
 
     def update(self):
-        is_on = self.__fetch_status()
+        is_on = self.__plug.get_status()
         if not is_on:
             return
 
-        power = self.__fetch_current_power()
+        power = self.__plug.get_power()
         if power < self.__power_threshold:
             if self.__low_power_since is None:
                 self.__low_power_since = datetime.datetime.now()
             elif datetime.datetime.now() - self.__low_power_since > datetime.timedelta(seconds=self.__max_low_power_time):
-                self.__set_status(False)
+                self.__plug.set_status(False)
+
+                print(f'Plug {self.__name} has been turned off.')
+
+                if self.__discord_log:
+                    self.__log_turned_off()
         else:
             self.__low_power_since = None
 
-    def __set_status(self, status: bool):
-        execute_device_method(self.__p110, lambda d: d.set_status(status))
-
-        print(f'Status of plug {self.__name} has been set to {status}.')
-
-        if status is False and self.__discord_log:
-            discord_webhook_url = os.getenv('DISCORD_WEBHOOK_URL')
-            if discord_webhook_url is not None:
-                message = f':electric_plug: The tapo plug `{self.__name}` has been turned off because it had a low power usage for more than {self.__max_low_power_time} seconds.'
-                DiscordWebhook(url=discord_webhook_url, content=message).execute()
-            else:
-                print('The environment variable DISCORD_WEBHOOK_URL should be set in order for discord logs to work.')
-
-    def __fetch_status(self) -> bool:
-        return execute_device_method(self.__p110, lambda d: d.get_status())
-
-    def __fetch_current_power(self) -> float:
-        energy_usage = execute_device_method(self.__p110, lambda d: d.getEnergyUsage())
-        return energy_usage['current_power'] / 1000
+    def __log_turned_off(self):
+        discord_webhook_url = os.getenv('DISCORD_WEBHOOK_URL')
+        if discord_webhook_url is not None:
+            message = f':electric_plug: The tapo plug `{self.__name}` has been turned off because it had a low power usage for more than {self.__max_low_power_time} seconds.'
+            DiscordWebhook(url=discord_webhook_url, content=message).execute()
+        else:
+            print('The environment variable DISCORD_WEBHOOK_URL should be set in order for discord logs to work.')
 
 
 class TapoPowerSavePlugConfig(TypedDict):
-    address: str
+    type: NotRequired[str]  # 'p110' (default)
+    address: NotRequired[str]  # Used when type is 'p110'
     power_threshold: float
     max_low_power_time: float
     discord_log: NotRequired[bool]
 
 
 def build_tapo_power_save_plug(name: str, config: TapoPowerSavePlugConfig) -> TapoPowerSavePlug:
-    tp_link_email = os.getenv('TP_LINK_EMAIL')
-    tp_link_password = os.getenv('TP_LINK_PASSWORD')
-
-    if tp_link_email is None or tp_link_password is None:
-        raise Exception('TP_LINK_EMAIL and TP_LINK_PASSWORD must be set as environment variables.')
-
-    p110 = P110(config['address'], tp_link_email, tp_link_password)
+    plug_type = config.get('type', 'p110')
+    if plug_type == 'p110':
+        plug = P110PowerMonitoringPlug(config.get('address'))
+    else:
+        raise Exception(f'Invalid plug type \'{plug_type}\'')
 
     return TapoPowerSavePlug(
         name,
-        p110,
+        plug,
         config.get('power_threshold'),
         config.get('max_low_power_time'),
         config.get('discord_log', False)
