@@ -4,7 +4,8 @@ from typing import Optional, TypedDict, NotRequired
 
 from discord_webhook import DiscordWebhook
 
-from power_monitoring_plug import PowerMonitoringPlug, PowerMonitoringPlugConfig, build_power_monitoring_plug
+from power_monitoring_plug import PowerMonitoringPlug
+from power_monitoring_plug_factory import PowerMonitoringPlugConfig, build_power_monitoring_plug
 
 
 class PowerSavingPlug:
