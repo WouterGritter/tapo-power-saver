@@ -24,8 +24,9 @@ def load_power_saving_plugs(file_name: str) -> list[PowerSavingPlug]:
 
     print('Waiting until MQTT plugs are ready (if there are any)...')
     for plug in plugs:
-        if isinstance(plug, MqttPowerMonitoringPlug):
-            plug.wait_until_ready()
+        power_monitoring_plug = plug.power_monitoring_plug
+        if isinstance(power_monitoring_plug, MqttPowerMonitoringPlug):
+            power_monitoring_plug.wait_until_ready()
     print('Done.')
 
     return plugs

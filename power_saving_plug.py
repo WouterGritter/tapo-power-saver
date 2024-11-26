@@ -19,6 +19,10 @@ class PowerSavingPlug:
 
         self.__low_power_since: Optional[datetime.datetime] = None
 
+    @property
+    def power_monitoring_plug(self) -> PowerMonitoringPlug:
+        return self.__plug
+
     def update(self):
         is_on = self.__plug.get_status()
         if not is_on:
