@@ -11,14 +11,14 @@ from power_monitoring_plug import PowerMonitoringPlug
 class MqttClient:
 
     def __init__(self, host: str, port: int):
+        self.__subscriptions: dict[str, list[Callable[[str, str], None]]] = {}
+
         self.__client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
         self.__client.on_connect = self.__on_connect
         self.__client.on_message = self.__on_message
 
         self.__client.connect(host, port, 60)
         self.__client.loop_start()
-
-        self.__subscriptions: dict[str, list[Callable[[str, str], None]]] = {}
 
     def subscribe(self, topic: str, callback: Callable[[str, str], None]):
         if topic not in self.__subscriptions:
