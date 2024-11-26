@@ -8,7 +8,7 @@ from p110_power_monitoring_plug import P110PowerMonitoringPlug
 from power_monitoring_plug import PowerMonitoringPlug
 
 
-class TapoPowerSavePlug:
+class PowerSavingPlug:
 
     def __init__(self, name: str, plug: PowerMonitoringPlug, power_threshold: float, max_low_power_time: float, discord_log: bool):
         self.__name = name
@@ -55,14 +55,14 @@ class TapoPowerSavePlugConfig(TypedDict):
     discord_log: NotRequired[bool]
 
 
-def build_tapo_power_save_plug(name: str, config: TapoPowerSavePlugConfig) -> TapoPowerSavePlug:
+def build_power_saving_plug(name: str, config: TapoPowerSavePlugConfig) -> PowerSavingPlug:
     plug_type = config.get('type', 'p110')
     if plug_type == 'p110':
         plug = P110PowerMonitoringPlug(config.get('address'))
     else:
         raise Exception(f'Invalid plug type \'{plug_type}\'')
 
-    return TapoPowerSavePlug(
+    return PowerSavingPlug(
         name,
         plug,
         config.get('power_threshold'),

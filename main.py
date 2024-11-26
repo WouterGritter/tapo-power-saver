@@ -4,20 +4,20 @@ import time
 import yaml
 from dotenv import load_dotenv
 
-from tapo_power_save_plug import TapoPowerSavePlug, build_tapo_power_save_plug
+from power_saving_plug import PowerSavingPlug, build_power_saving_plug
 
 
 load_dotenv()
 
 
-def load_power_save_plugs(file_name: str) -> list[TapoPowerSavePlug]:
+def load_power_saving_plugs(file_name: str) -> list[PowerSavingPlug]:
     with open(file_name) as stream:
         config = yaml.safe_load(stream)
 
     plugs = []
     for name, plug_config in config['power-save-plugs'].items():
         plug_config = {k.replace('-', '_'): v for k, v in plug_config.items()}
-        plug = build_tapo_power_save_plug(name, plug_config)
+        plug = build_power_saving_plug(name, plug_config)
         plugs.append(plug)
 
     return plugs
@@ -30,7 +30,7 @@ def main():
     print(f'CONFIG_FILE={config_file}')
     print(f'UPDATE_INTERVAL={update_interval}')
 
-    plugs = load_power_save_plugs(config_file)
+    plugs = load_power_saving_plugs(config_file)
     print(f'Loaded {len(plugs)} plug(s).')
 
     while True:
