@@ -1,13 +1,15 @@
+from dotenv import load_dotenv
+
+from mqtt_power_monitoring_plug import MqttPowerMonitoringPlug
+
+load_dotenv()
+
 import os
 import time
 
 import yaml
-from dotenv import load_dotenv
 
 from power_saving_plug import PowerSavingPlug, build_power_saving_plug
-
-
-load_dotenv()
 
 
 def load_power_saving_plugs(file_name: str) -> list[PowerSavingPlug]:
@@ -19,6 +21,12 @@ def load_power_saving_plugs(file_name: str) -> list[PowerSavingPlug]:
         plug_config = {k.replace('-', '_'): v for k, v in plug_config.items()}
         plug = build_power_saving_plug(name, plug_config)
         plugs.append(plug)
+
+    print('Waiting until MQTT plugs are ready (if there are any)...')
+    for plug in plugs:
+        if isinstance(plug, MqttPowerMonitoringPlug):
+            plug.wait_until_ready()
+    print('Done.')
 
     return plugs
 

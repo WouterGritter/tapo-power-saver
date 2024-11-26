@@ -4,8 +4,7 @@ from typing import Optional, TypedDict, NotRequired
 
 from discord_webhook import DiscordWebhook
 
-from p110_power_monitoring_plug import P110PowerMonitoringPlug
-from power_monitoring_plug import PowerMonitoringPlug
+from power_monitoring_plug import PowerMonitoringPlug, PowerMonitoringPlugConfig, build_power_monitoring_plug
 
 
 class PowerSavingPlug:
@@ -47,24 +46,16 @@ class PowerSavingPlug:
             print('The environment variable DISCORD_WEBHOOK_URL should be set in order for discord logs to work.')
 
 
-class TapoPowerSavePlugConfig(TypedDict):
-    type: NotRequired[str]  # 'p110' (default)
-    address: NotRequired[str]  # Used when type is 'p110'
+class PowerSavingPlugConfig(TypedDict, PowerMonitoringPlugConfig):
     power_threshold: float
     max_low_power_time: float
     discord_log: NotRequired[bool]
 
 
-def build_power_saving_plug(name: str, config: TapoPowerSavePlugConfig) -> PowerSavingPlug:
-    plug_type = config.get('type', 'p110')
-    if plug_type == 'p110':
-        plug = P110PowerMonitoringPlug(config.get('address'))
-    else:
-        raise Exception(f'Invalid plug type \'{plug_type}\'')
-
+def build_power_saving_plug(name: str, config: PowerSavingPlugConfig) -> PowerSavingPlug:
     return PowerSavingPlug(
         name,
-        plug,
+        build_power_monitoring_plug(config),
         config.get('power_threshold'),
         config.get('max_low_power_time'),
         config.get('discord_log', False)
