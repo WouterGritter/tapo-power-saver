@@ -26,6 +26,7 @@ class PowerSavingPlug:
     def update(self):
         is_on = self.__plug.get_status()
         if not is_on:
+            self.__low_power_since = None
             return
 
         power = self.__plug.get_power()
