@@ -18,6 +18,7 @@ class PowerSavingPlug:
         self.__discord_log = discord_log
 
         self.__low_power_since: Optional[datetime.datetime] = None
+        self.__was_on: Optional[bool] = None
 
     @property
     def power_monitoring_plug(self) -> PowerMonitoringPlug:
@@ -25,6 +26,13 @@ class PowerSavingPlug:
 
     def update(self):
         is_on = self.__plug.get_status()
+
+        if is_on and self.__was_on is False:
+            # Tapo plug just got turned on externally.
+            self.__log_turned_on()
+
+        self.__was_on = is_on
+
         if not is_on:
             self.__low_power_since = None
             return
@@ -36,20 +44,27 @@ class PowerSavingPlug:
             elif datetime.datetime.now() - self.__low_power_since > datetime.timedelta(seconds=self.__max_low_power_time):
                 self.__plug.set_status(False)
 
-                print(f'Plug {self.__name} has been turned off.')
-
-                if self.__discord_log:
-                    self.__log_turned_off()
+                self.__log_turned_off()
         else:
             self.__low_power_since = None
 
     def __log_turned_off(self):
-        discord_webhook_url = os.getenv('DISCORD_WEBHOOK_URL')
-        if discord_webhook_url is not None:
-            message = f':electric_plug: The tapo plug `{self.__name}` has been turned off because it had a low power usage for more than {self.__max_low_power_time} seconds.'
-            DiscordWebhook(url=discord_webhook_url, content=message).execute()
-        else:
-            print('The environment variable DISCORD_WEBHOOK_URL should be set in order for discord logs to work.')
+        message = f':electric_plug: The tapo plug `{self.__name}` has been turned off because it had a low power usage for more than {self.__max_low_power_time} seconds.'
+        self.__log(message)
+
+    def __log_turned_on(self):
+        message = f':electric_plug: The tapo plug `{self.__name}` just got turned on externally :zap:! It will turn off automatically after it has a low power usage for more than {self.__max_low_power_time} seconds.'
+        self.__log(message)
+
+    def __log(self, message: str):
+        print(message)
+
+        if self.__discord_log:
+            discord_webhook_url = os.getenv('DISCORD_WEBHOOK_URL')
+            if discord_webhook_url is not None:
+                DiscordWebhook(url=discord_webhook_url, content=message).execute()
+            else:
+                print('The environment variable DISCORD_WEBHOOK_URL should be set in order for discord logs to work.')
 
 
 class PowerSavingPlugConfig(TypedDict, PowerMonitoringPlugConfig):
