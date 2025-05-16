@@ -1,6 +1,6 @@
-# A collection of power-saved plugs.
+# A collection of power-saving plugs.
 power-save-plugs:
-  # The name of the power-saved plug.
+  # The name of the power-saving plug.
   tv-setup:
     # The type of plug (p110 or mqtt), not required (default is p110)
     type: p110
@@ -11,5 +11,17 @@ power-save-plugs:
     # When the plug consumes less than `power-threshold` watts of power for `max-low-power-time` seconds, the plug will be turned off.
     power-threshold: 50
     max-low-power-time: 60
-    # Whether to log the power-off event on discord. When true, the `DISCORD_WEBHOOK_URL` environment variable should be set.
-    discord-log: true
+
+# A collection of power-notifying plugs.
+power-notify-plugs:
+  # The name of the power-notifying plug.
+  dryer:
+    # The type of plug (p110 or mqtt), not required (default is p110)
+    type: p110
+    # When plug type is 'p110', the address of the tapo P110 plug.
+    address: '5.6.7.8'
+    # When plug type is 'mqtt', the MQTT topic prefix of the plug.
+    # topic: 'wash-room/dryer'
+    # When the plug consumes less than `power-threshold` watts of power for `max-low-power-time` seconds, the device will be considered off and a message is sent.
+    power-threshold: 50
+    max-low-power-time: 60

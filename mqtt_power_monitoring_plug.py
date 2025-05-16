@@ -20,6 +20,11 @@ class MqttClient:
         self.__client.connect(host, port, 60)
         self.__client.loop_start()
 
+        while not self.__client.is_connected():
+            time.sleep(0.1)
+
+        print('MQTT connected.')
+
     def subscribe(self, topic: str, callback: Callable[[str, str], None]):
         if topic not in self.__subscriptions:
             self.__subscriptions[topic] = []
@@ -50,14 +55,20 @@ class MqttClient:
 
 
 global_mqtt_client: Optional[MqttClient] = None
-if os.getenv('MQTT_BROKER_ADDRESS') is not None:
-    print('MQTT_BROKER_ADDRESS environment variable defined, connecting to MQTT broker!')
-    global_mqtt_client = MqttClient(
-        host=os.getenv('MQTT_BROKER_ADDRESS'),
-        port=int(os.getenv('MQTT_BROKER_PORT', '1883')),
-    )
-else:
-    print('No MQTT_BROKER_ADDRESS environment variable defined, \'mqtt\' type plugs won\'t work.')
+def get_global_mqtt_client():
+    global global_mqtt_client
+
+    if global_mqtt_client is None:
+        if os.getenv('MQTT_BROKER_ADDRESS') is None:
+            raise Exception('No MQTT_BROKER_ADDRESS environment variable defined.')
+
+        print('MQTT_BROKER_ADDRESS environment variable defined, connecting to MQTT broker!')
+        global_mqtt_client = MqttClient(
+            host=os.getenv('MQTT_BROKER_ADDRESS'),
+            port=int(os.getenv('MQTT_BROKER_PORT', '1883')),
+        )
+
+    return global_mqtt_client
 
 
 class MqttPowerMonitoringPlug(PowerMonitoringPlug):
@@ -67,9 +78,9 @@ class MqttPowerMonitoringPlug(PowerMonitoringPlug):
                  power_topic: str = '{topic_prefix}/power',
                  mqtt_client: Optional[MqttClient] = None):
         if mqtt_client is None:
-            mqtt_client = global_mqtt_client
+            mqtt_client = get_global_mqtt_client()
         if mqtt_client is None:
-            raise Exception('No MQTT client provided.')
+            raise Exception('No MQTT client provided (possibly missing MQTT_BROKER_ADDRESS environment variable).')
 
         self.__status_topic = status_topic.format(topic_prefix=topic_prefix)
         self.__power_topic = power_topic.format(topic_prefix=topic_prefix)
@@ -77,8 +88,10 @@ class MqttPowerMonitoringPlug(PowerMonitoringPlug):
         self.__status: Optional[bool] = None
         self.__power: Optional[float] = None
 
-        mqtt_client.subscribe(self.__status_topic, self.__mqtt_status_callback)
-        mqtt_client.subscribe(self.__power_topic, self.__mqtt_power_callback)
+        self.__mqtt_client = mqtt_client
+
+        self.__mqtt_client.subscribe(self.__status_topic, self.__mqtt_status_callback)
+        self.__mqtt_client.subscribe(self.__power_topic, self.__mqtt_power_callback)
 
     def __mqtt_status_callback(self, topic: str, value: str):
         self.__status = value == '1'
@@ -103,4 +116,4 @@ class MqttPowerMonitoringPlug(PowerMonitoringPlug):
         return self.__status
 
     def set_status(self, status: bool) -> None:
-        global_mqtt_client.publish(self.__status_topic, '1' if status else '0', qos=2, retain=True)
+        self.__mqtt_client.publish(self.__status_topic, '1' if status else '0', qos=2, retain=True)

@@ -1,6 +1,8 @@
 from dotenv import load_dotenv
 
+from intelligent_plug import IntelligentPlug
 from mqtt_power_monitoring_plug import MqttPowerMonitoringPlug
+from power_notifying_plug import build_power_notifying_plug
 
 load_dotenv()
 
@@ -9,24 +11,30 @@ import time
 
 import yaml
 
-from power_saving_plug import PowerSavingPlug, build_power_saving_plug
+from power_saving_plug import build_power_saving_plug
 
 
-def load_power_saving_plugs(file_name: str) -> list[PowerSavingPlug]:
+def load_intelligent_plugs(file_name: str) -> list[IntelligentPlug]:
     with open(file_name) as stream:
         config = yaml.safe_load(stream)
 
-    plugs = []
-    for name, plug_config in config['power-save-plugs'].items():
+    plugs: list[IntelligentPlug] = []
+
+    for name, plug_config in (config.get('power-save-plugs') or {}).items():
         plug_config = {k.replace('-', '_'): v for k, v in plug_config.items()}
         plug = build_power_saving_plug(name, plug_config)
         plugs.append(plug)
 
+    for name, plug_config in (config.get('power-notify-plugs') or {}).items():
+        plug_config = {k.replace('-', '_'): v for k, v in plug_config.items()}
+        plug = build_power_notifying_plug(name, plug_config)
+        plugs.append(plug)
+
     print('Waiting until MQTT plugs are ready (if there are any)...')
     for plug in plugs:
-        power_monitoring_plug = plug.power_monitoring_plug
-        if isinstance(power_monitoring_plug, MqttPowerMonitoringPlug):
-            power_monitoring_plug.wait_until_ready()
+        backend = plug.get_backend()
+        if isinstance(backend, MqttPowerMonitoringPlug):
+            backend.wait_until_ready()
     print('Done.')
 
     return plugs
@@ -39,7 +47,7 @@ def main():
     print(f'CONFIG_FILE={config_file}')
     print(f'UPDATE_INTERVAL={update_interval}')
 
-    plugs = load_power_saving_plugs(config_file)
+    plugs = load_intelligent_plugs(config_file)
     print(f'Loaded {len(plugs)} plug(s).')
 
     while True:
