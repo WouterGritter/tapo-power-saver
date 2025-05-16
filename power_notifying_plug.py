@@ -15,7 +15,7 @@ class PowerNotifyingPlug(IntelligentPlug):
         self.__power_threshold = power_threshold
         self.__max_low_power_time = max_low_power_time
 
-        self.__considered_on: bool = False
+        self.__considered_on: Optional[bool] = None
         self.__low_power_since: Optional[datetime.datetime] = None
 
     def get_backend(self) -> PowerMonitoringPlug:
@@ -23,6 +23,11 @@ class PowerNotifyingPlug(IntelligentPlug):
 
     def update(self):
         power = self.__backend.get_power()
+
+        if self.__considered_on is None:
+            self.__considered_on = power > self.__power_threshold
+            return
+
         if not self.__considered_on:
             if power > self.__power_threshold:
                 self.__considered_on = True
